@@ -1,13 +1,14 @@
 import argparse
 import os
+import sys
 from typing import Any
 
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
 from elevenlabs.play import play, save
-from elevenlabs.types import VoiceSettings
+from elevenlabs.types import DialogueInput, VoiceSettings
 
-from elspeech.script import Script, load_script
+from elspeech.script import DialogueLine, Script, load_script
 
 load_dotenv()
 
@@ -34,6 +35,39 @@ def generate_speech(
             text=text,
             voice_settings=VoiceSettings(**voice_settings) if voice_settings else None,
             **{**DEFAULT_REQUEST, **request},
+        )
+    )
+
+
+# Voice settings supported by the dialogue API, mapped to its setting names.
+DIALOGUE_SETTINGS_MAP = {"stability": "stability", "similarity_boost": "similarity"}
+# Above this, the API may terminate early or reject the request.
+DIALOGUE_MAX_CHARS = 2000
+
+
+def generate_dialogue(
+    lines: list[DialogueLine],
+    voice_settings: dict[str, Any] | None = None,
+    **request: Any,
+) -> bytes:
+    unsupported = set(voice_settings or {}) - DIALOGUE_SETTINGS_MAP.keys()
+    if unsupported:
+        raise ValueError(
+            f"voice settings not supported in dialogue mode: "
+            f"{', '.join(sorted(unsupported))}"
+        )
+    settings = {DIALOGUE_SETTINGS_MAP[k]: v for k, v in (voice_settings or {}).items()}
+
+    elevenlabs = ElevenLabs(
+        api_key=os.getenv("ELEVENLABS_API_KEY"),
+    )
+    request = {**DEFAULT_REQUEST, **request}
+    request.pop("voice_id")  # each dialogue line carries its own voice
+    return b"".join(
+        elevenlabs.text_to_dialogue.convert(
+            inputs=[DialogueInput(text=l.text, voice_id=l.voice_id) for l in lines],
+            settings=settings or None,
+            **request,
         )
     )
 
@@ -78,7 +112,20 @@ def main():
     if args.language:
         request["language_code"] = args.language
 
-    audio = generate_speech(script.text, script.voice_settings, **request)
+    if script.dialogue:
+        total = sum(len(l.text) for l in script.dialogue)
+        if total > DIALOGUE_MAX_CHARS:
+            print(
+                f"warning: dialogue has {total} characters; more than "
+                f"{DIALOGUE_MAX_CHARS} may fail or be cut off",
+                file=sys.stderr,
+            )
+        try:
+            audio = generate_dialogue(script.dialogue, script.voice_settings, **request)
+        except ValueError as e:
+            parser.error(str(e))
+    else:
+        audio = generate_speech(script.text, script.voice_settings, **request)
     if args.play:
         play(audio)
     if args.outfile:

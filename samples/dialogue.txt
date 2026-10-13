@@ -1,0 +1,13 @@
++++
+language_code = "ja"
+model_id = "eleven_v4_turbo"
+output_format = "mp3_24000_48"
+
+[speakers]
+chuck = "HIGUfNOdjuWQwwapnTRW"
+aya = "MXKtCrra8fvlDUbfKUT1"
++++
+chuck: こんにちは、アヤさん。今日はいい天気ですね。
+aya: そうですね。[laughs] 散歩にでも出かけたい気分です。
+chuck: いいですね。近くの公園まで行ってみませんか。
+aya: 賛成です。お弁当も持っていきましょう。
