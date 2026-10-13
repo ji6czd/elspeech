@@ -1,0 +1,10 @@
++++
+language_code = "ja"
+voice_id = "HIGUfNOdjuWQwwapnTRW"
+model_id = "eleven_v4_turbo"
+output_format = "mp3_24000_48"
+stability = 0.5
+similarity_boost = 0.75
++++
+こんにちは。これは Eleven Labsの音声生成のサンプルです。
+フロントマターで、音声の設定をファイルごとに指定できます。
