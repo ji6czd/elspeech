@@ -62,11 +62,11 @@ def parse_dialogue(body: str, speakers: dict[str, str]) -> list[DialogueLine]:
     return [DialogueLine(speakers[n], t) for n, t in zip(names, texts) if t]
 
 
-def parse_script(source: str) -> Script:
-    """Parse text with optional TOML front matter delimited by `+++` lines."""
+def split_front_matter(source: str) -> tuple[dict[str, Any], str]:
+    """Split text into (TOML front matter delimited by `+++` lines, body)."""
     lines = source.splitlines()
     if not lines or lines[0].strip() != DELIMITER:
-        return Script(text=source.strip())
+        return {}, source.strip()
 
     try:
         end = next(i for i in range(1, len(lines)) if lines[i].strip() == DELIMITER)
@@ -74,11 +74,19 @@ def parse_script(source: str) -> Script:
         raise ValueError(f"front matter is not closed with '{DELIMITER}'") from None
 
     meta = tomllib.loads("\n".join(lines[1:end]))
+    return meta, "\n".join(lines[end + 1 :]).strip()
+
+
+def parse_script(source: str) -> Script:
+    """Parse text with optional TOML front matter delimited by `+++` lines."""
+    meta, body = split_front_matter(source)
+    if not meta:
+        return Script(text=body)
+
     unknown = meta.keys() - REQUEST_KEYS - VOICE_SETTINGS_KEYS - {SPEAKERS_KEY}
     if unknown:
         raise ValueError(f"unknown front matter keys: {', '.join(sorted(unknown))}")
 
-    body = "\n".join(lines[end + 1 :]).strip()
     request = {k: v for k, v in meta.items() if k in REQUEST_KEYS}
     voice_settings = {k: v for k, v in meta.items() if k in VOICE_SETTINGS_KEYS}
 

@@ -1,0 +1,7 @@
++++
+model_id = "music_v2_5"
+music_length_ms = 30000
+force_instrumental = true
++++
+雨の夜に勉強するための、落ち着いたローファイ・ヒップホップ。
+ゆったりしたビート、柔らかいエレクトリックピアノ、レコードのノイズ。
